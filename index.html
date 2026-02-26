@@ -23,6 +23,7 @@
   --fair:      #b09020;
   --good:      #3a9060;
   --excellent: #2a52d4;
+  --slider:    #8b7457;
   --radius:    10px;
   --shadow:    0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
 }
@@ -283,9 +284,9 @@ input[type="range"]::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--slider);
   border: 3px solid white;
-  box-shadow: 0 0 0 1.5px var(--accent), 0 2px 6px rgba(42,82,212,.2);
+  box-shadow: 0 0 0 1.5px var(--slider), 0 2px 6px rgba(139,116,87,.2);
   margin-top: -7px;
   transition: transform .1s;
 }
@@ -294,15 +295,15 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
 input[type="range"]::-moz-range-thumb {
   width: 20px; height: 20px; border-radius: 50%;
-  background: var(--accent); border: 3px solid white;
-  box-shadow: 0 0 0 1.5px var(--accent); cursor: pointer;
+  background: var(--slider); border: 3px solid white;
+  box-shadow: 0 0 0 1.5px var(--slider); cursor: pointer;
 }
 
 .score-display {
   font-family: 'JetBrains Mono', monospace;
   font-size: .9rem;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--slider);
   text-align: right;
   min-width: 32px;
 }
@@ -443,6 +444,43 @@ input[type="range"]::-moz-range-thumb {
 }
 .dl-btn:hover { background: #333; }
 
+/* ── Demographics ── */
+.demo-group {
+  margin-bottom: 1.4rem;
+}
+.demo-group-label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: .6rem;
+  display: block;
+}
+.demo-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.demo-option input[type="radio"] { display: none; }
+.demo-option label {
+  display: inline-block;
+  padding: .42rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  font-size: .83rem;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--muted);
+  transition: all .15s;
+  user-select: none;
+}
+.demo-option label:hover { border-color: var(--slider); color: var(--slider); }
+.demo-option input[type="radio"]:checked + label {
+  border-color: var(--slider);
+  background: #f4ede5;
+  color: var(--slider);
+  font-weight: 600;
+}
+
 /* ── Toast ── */
 #toast {
   position: fixed; bottom: 1.75rem; right: 1.75rem;
@@ -469,7 +507,7 @@ input[type="range"]::-moz-range-thumb {
   <span id="topbar-title">Loading…</span>
   <div id="vol-wrap">
     <span id="vol-icon">🔈</span>
-    <input id="vol-slider" type="range" min="0" max="1" step="0.01" value="1">
+    <input id="vol-slider" type="range" min="0" max="2" step="0.01" value="1">
   </div>
   <div id="progress-wrap">
     <span id="progress-label">1 / 1</span>
@@ -494,6 +532,11 @@ input[type="range"]::-moz-range-thumb {
     {
       "type": "consent",
       "name": "Participant Information & Consent"
+    },
+
+    {
+      "type": "demographics",
+      "name": "About You"
     },
 
     {
@@ -563,6 +606,21 @@ input[type="range"]::-moz-range-thumb {
     },
 
     {
+      "type":      "mushra",
+      "name":      "Robotic",
+      "id":        "robotic",
+      "content":   "Rate how <strong>robotic</strong> each voice sounds compared to the reference.",
+      "randomize": true,
+      "reference": { "label": "Reference", "src": "sensitive.wav" },
+      "stimuli": [
+        { "id": "S1",  "label": "Sample A",         "condition": "low",       "src": "sensitive.wav", "isHiddenRef": false },
+        { "id": "S2",  "label": "Sample B",         "condition": "med",       "src": "sensitive.wav", "isHiddenRef": false },
+        { "id": "S3",  "label": "Sample C",         "condition": "high",      "src": "sensitive.wav", "isHiddenRef": false },
+        { "id": "REF", "label": "Hidden Reference", "condition": "reference", "src": "sensitive.wav", "isHiddenRef": true  }
+      ]
+    },
+
+    {
       "type":        "finish",
       "name":        "Thank You",
       "content":     "Thank you for participating. Your responses have been recorded.",
@@ -598,8 +656,7 @@ function scoreColor(v) {
 
 function paintSlider(slider) {
   const v = slider.value;
-  const c = scoreColor(v);
-  slider.style.background = `linear-gradient(to right,${c} 0%,${c} ${v}%,var(--border) ${v}%,var(--border) 100%)`;
+  slider.style.background = `linear-gradient(to right,var(--slider) 0%,var(--slider) ${v}%,var(--border) ${v}%,var(--border) 100%)`;
 }
 
 /* ── state ───────────────────────────────────────────────────── */
@@ -607,17 +664,31 @@ const CFG        = JSON.parse($('cfg').textContent);
 const SESSION    = uuid4();
 let   CUR_PAGE   = 0;
 const RESULTS    = {};          // { pageId: { stimId: score } }
+const DEMOGRAPHICS = {};        // { age, education, native_english }
 const PLAY_CNT   = {};          // { "pageIdx_stimId": n }
 const PAGE_ORDER = {};          // { pageIdx: [stim,...] }  — randomised once per page
 const PAGE_TIMES = {};          // { pageIdx: { elapsed, lastStart } }
 let   CUR_AUDIO  = null;
 let   CUR_BTN_ID = null;
 let   CUR_ROW_ID = null;
+let   AUDIO_CTX  = null;
+let   GAIN_NODE  = null;
+
+function ensureAudioCtx() {
+  if (!AUDIO_CTX) {
+    AUDIO_CTX = new (window.AudioContext || window.webkitAudioContext)();
+    GAIN_NODE = AUDIO_CTX.createGain();
+    GAIN_NODE.connect(AUDIO_CTX.destination);
+  }
+  if (AUDIO_CTX.state === 'suspended') AUDIO_CTX.resume();
+  GAIN_NODE.gain.value = +$('vol-slider').value;
+  return { ctx: AUDIO_CTX, gain: GAIN_NODE };
+}
 
 /* ── boot ────────────────────────────────────────────────────── */
 $('topbar-title').textContent = CFG.testname;
 $('vol-slider').addEventListener('input', () => {
-  if (CUR_AUDIO) CUR_AUDIO.volume = +$('vol-slider').value;
+  if (GAIN_NODE) GAIN_NODE.gain.value = +$('vol-slider').value;
 });
 go(0);
 
@@ -641,10 +712,11 @@ function go(idx) {
   const main = $('main');
   main.innerHTML = '';
 
-  if      (page.type === 'consent') main.appendChild(buildConsent(page, idx));
-  else if (page.type === 'generic') main.appendChild(buildGeneric(page, idx));
-  else if (page.type === 'mushra')  main.appendChild(buildMushra(page, idx));
-  else if (page.type === 'finish')  main.appendChild(buildFinish(page, idx));
+  if      (page.type === 'consent')      main.appendChild(buildConsent(page, idx));
+  else if (page.type === 'demographics') main.appendChild(buildDemographics(page, idx));
+  else if (page.type === 'generic')      main.appendChild(buildGeneric(page, idx));
+  else if (page.type === 'mushra')       main.appendChild(buildMushra(page, idx));
+  else if (page.type === 'finish')       main.appendChild(buildFinish(page, idx));
 }
 
 /* ── generic page ─────────────────────────────────────────────── */
@@ -683,6 +755,58 @@ function buildConsent(page, idx) {
       return false;
     }
     return true;
+  }));
+  return card;
+}
+
+/* ── demographics page ───────────────────────────────────────── */
+function buildDemographics(page, idx) {
+  const card = mk('div','page-card');
+  card.innerHTML = `
+    <div class="generic-icon">👤</div>
+    <span class="page-type-badge">Background</span>
+    <h1 class="page-title">${page.name}</h1>
+    <p class="page-content">Please answer a few brief questions about yourself. Your responses are anonymous and will only be used for research purposes.</p>`;
+
+  const groups = [
+    { key: 'age',            label: 'Age group',
+      options: ['18–29 (Gen Z)', '30–35 (Millennial)', '36–45', '46+'] },
+    { key: 'education',      label: 'Highest level of education completed',
+      options: ['High school', "Bachelor's", "Master's", 'PhD'] },
+    { key: 'native_english', label: 'Are you a native English speaker?',
+      options: ['Yes', 'No'] }
+  ];
+
+  const form = mk('div',''); form.style.marginTop = '1.5rem';
+  groups.forEach(g => {
+    const group = mk('div','demo-group');
+    group.appendChild(mk('span','demo-group-label', g.label));
+    const opts = mk('div','demo-options');
+    g.options.forEach(opt => {
+      const wrapper = mk('div','demo-option');
+      const radio   = mk('input');
+      radio.type = 'radio'; radio.name = `demo-${g.key}`;
+      radio.id   = `demo-${g.key}-${opt.replace(/[^a-z0-9]/gi,'_')}`;
+      radio.value = opt;
+      if (DEMOGRAPHICS[g.key] === opt) radio.checked = true;
+      radio.onchange = () => { DEMOGRAPHICS[g.key] = opt; };
+      const label = mk('label','', opt); label.htmlFor = radio.id;
+      wrapper.appendChild(radio); wrapper.appendChild(label);
+      opts.appendChild(wrapper);
+    });
+    group.appendChild(opts); form.appendChild(group);
+  });
+  card.appendChild(form);
+
+  const warn = mk('p','must-play-warn','⚠ Please answer all questions before continuing.');
+  warn.id = `warn-${idx}`; card.appendChild(warn);
+
+  card.appendChild(makeFooter(idx, () => {
+    if (!['age','education','native_english'].every(k => DEMOGRAPHICS[k])) {
+      $(`warn-${idx}`).classList.add('show');
+      toast('⚠ Please answer all questions.'); return false;
+    }
+    $(`warn-${idx}`).classList.remove('show'); return true;
   }));
   return card;
 }
@@ -924,8 +1048,6 @@ function setPausedUI(btnId, rowId) {
 }
 
 function playAudio(src, btnId, pageIdx, stimId, rowId) {
-  const btn = $(btnId);
-
   // --- Case 1: clicking the currently active (playing) button → PAUSE ---
   if (CUR_AUDIO && !CUR_AUDIO.paused && CUR_BTN_ID === btnId) {
     CUR_AUDIO.pause();
@@ -935,6 +1057,7 @@ function playAudio(src, btnId, pageIdx, stimId, rowId) {
 
   // --- Case 2: clicking the currently paused button → RESUME ---
   if (CUR_AUDIO && CUR_AUDIO.paused && CUR_BTN_ID === btnId) {
+    if (AUDIO_CTX && AUDIO_CTX.state === 'suspended') AUDIO_CTX.resume();
     CUR_AUDIO.play().catch(() => toast('⚠ Could not resume — check audio path.'));
     setPlayingUI(btnId, rowId, stimId);
     return;
@@ -946,7 +1069,11 @@ function playAudio(src, btnId, pageIdx, stimId, rowId) {
   if (!src) { toast('⚠ No audio configured for this sample.'); return; }
 
   const audio = new Audio(src);
-  audio.volume = +$('vol-slider').value;
+  const { ctx, gain } = ensureAudioCtx();
+  try {
+    const source = ctx.createMediaElementSource(audio);
+    source.connect(gain);
+  } catch(e) { /* already connected */ }
   CUR_AUDIO   = audio;
   CUR_BTN_ID  = btnId;
   CUR_ROW_ID  = rowId;
@@ -968,7 +1095,7 @@ function playAudio(src, btnId, pageIdx, stimId, rowId) {
 
 /* ── results payload ─────────────────────────────────────────── */
 function buildPayload() {
-  const headers = ['session_test_id','session_uuid','trial_id','rating_stimulus','rating_condition','rating_score','rating_time','rating_comment'];
+  const headers = ['session_test_id','session_uuid','dem_age','dem_education','dem_native_english','trial_id','rating_stimulus','rating_condition','rating_score','rating_time','rating_comment'];
   const dataRows = [];
   CFG.pages.filter(p => p.type === 'mushra').forEach(p => {
     const mpIdx   = CFG.pages.indexOf(p);
@@ -978,6 +1105,9 @@ function buildPayload() {
       dataRows.push([
         CFG.testId,
         SESSION,
+        DEMOGRAPHICS.age || '',
+        DEMOGRAPHICS.education || '',
+        DEMOGRAPHICS.native_english || '',
         p.id,
         s.id,
         s.condition || '',
