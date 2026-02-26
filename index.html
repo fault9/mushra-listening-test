@@ -973,15 +973,7 @@ function buildFinish(page, idx) {
   const statusWrap = mk('div',''); statusWrap.id='save-status'; statusWrap.style.marginTop='1.5rem';
   card.appendChild(statusWrap);
 
-  // action row
-  const actions = mk('div','action-row');
-  const dl = mk('button','dl-btn','⬇ Download CSV'); dl.onclick = downloadCSV;
-  actions.appendChild(dl);
-  if (CFG.showButtonPreviousPage && idx > 0) {
-    const prev = mk('button','btn btn-outline','← Previous'); prev.onclick=()=>go(idx-1);
-    actions.appendChild(prev);
-  }
-  card.appendChild(actions);
+  card.appendChild(mk('div',''));
 
   // auto-post
   saveToServer(statusWrap);
