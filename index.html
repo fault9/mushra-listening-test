@@ -932,52 +932,98 @@ function refreshPill(idx) {
 function buildFinish(page, idx) {
   const card = mk('div','page-card');
   card.innerHTML = `
+    <div style="text-align:center;padding:1rem 0 2rem">
+      <div style="font-size:2.5rem;margin-bottom:1.25rem">⏳</div>
+      <span class="page-type-badge">Please wait</span>
+      <h1 class="page-title" style="text-align:center;margin-top:.9rem">Saving your responses…</h1>
+      <p class="page-content" style="text-align:center">Please don't close this window.</p>
+    </div>`;
+  saveToServer(card, page);
+  return card;
+}
+
+function buildResultsSection(page) {
+  const sec = mk('div','results-section');
+  CFG.pages.filter(p => p.type==='mushra').forEach(mp => {
+    const mpIdx = CFG.pages.indexOf(mp);
+    const order = PAGE_ORDER[mpIdx] || mp.stimuli;
+    sec.appendChild(mk('div','results-group-title', mp.name));
+    const table = mk('table','results-table');
+    table.innerHTML = `<thead><tr>
+      <th>Sample</th><th>Score</th><th class="bar-cell">Distribution</th><th>Played</th><th>Note</th>
+    </tr></thead>`;
+    const tbody = mk('tbody');
+    order.forEach((stim, i) => {
+      const score = RESULTS[mp.id]?.[stim.id] ?? '–';
+      const color = typeof score==='number' ? scoreColor(score) : 'var(--border)';
+      const tr = mk('tr');
+      tr.innerHTML = `
+        <td>Sample ${String.fromCharCode(65+i)}</td>
+        <td><strong>${score}</strong></td>
+        <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${score}%;background:${color}"></div></div></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:.78rem">${cnt(mpIdx,stim.id)}×</td>
+        <td>${stim.isHiddenRef ? '<span class="hidden-ref-tag">Hidden Ref</span>' : ''}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    sec.appendChild(table);
+  });
+  return sec;
+}
+
+function onSubmitSuccess(card, page) {
+  card.innerHTML = `
     <div class="finish-check">✓</div>
     <span class="page-type-badge">Complete</span>
     <h1 class="page-title" style="text-align:center">${page.name}</h1>
     <p class="page-content" style="text-align:center">${page.content}</p>`;
-
-  if (page.showResults !== false) {
-    const sec = mk('div','results-section');
-    CFG.pages.filter(p => p.type==='mushra').forEach(mp => {
-      const mpIdx = CFG.pages.indexOf(mp);
-      const order = PAGE_ORDER[mpIdx] || mp.stimuli;
-
-      const title = mk('div','results-group-title', mp.name);
-      sec.appendChild(title);
-
-      const table = mk('table','results-table');
-      table.innerHTML = `<thead><tr>
-        <th>Sample</th><th>Score</th><th class="bar-cell">Distribution</th><th>Played</th><th>Note</th>
-      </tr></thead>`;
-      const tbody = mk('tbody');
-      order.forEach((stim, i) => {
-        const score = RESULTS[mp.id]?.[stim.id] ?? '–';
-        const color = typeof score==='number' ? scoreColor(score) : 'var(--border)';
-        const tr = mk('tr');
-        tr.innerHTML = `
-          <td>Sample ${String.fromCharCode(65+i)}</td>
-          <td><strong>${score}</strong></td>
-          <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${score}%;background:${color}"></div></div></td>
-          <td style="font-family:'JetBrains Mono',monospace;font-size:.78rem">${cnt(mpIdx,stim.id)}×</td>
-          <td>${stim.isHiddenRef ? '<span class="hidden-ref-tag">Hidden Ref</span>' : ''}</td>`;
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      sec.appendChild(table);
-    });
-    card.appendChild(sec);
-  }
-
-  // save status
-  const statusWrap = mk('div',''); statusWrap.id='save-status'; statusWrap.style.marginTop='1.5rem';
+  if (page.showResults !== false) card.appendChild(buildResultsSection(page));
+  const statusWrap = mk('div',''); statusWrap.style.marginTop='1.5rem';
+  statusWrap.innerHTML = `<span class="save-status save-ok">✓ Submitted to Google Sheets</span>`;
   card.appendChild(statusWrap);
+  const actionRow = mk('div','action-row');
+  const dlBtn = mk('button','dl-btn','⬇ Download CSV');
+  dlBtn.onclick = downloadCSV;
+  actionRow.appendChild(dlBtn);
+  card.appendChild(actionRow);
+}
 
-  card.appendChild(mk('div',''));
+function onSubmitFailure(card, errorMsg) {
+  const mailHref = `mailto:felix.olander@gmail.com`
+    + `?subject=${encodeURIComponent(`MUSHRA Results — ${CFG.testId}`)}`
+    + `&body=${encodeURIComponent(`Hi Felix,\n\nMy results could not be submitted automatically. Please find the CSV attached.\n\nSession ID: ${SESSION}`)}`;
 
-  // auto-post
-  saveToServer(statusWrap);
-  return card;
+  card.innerHTML = `
+    <div style="width:72px;height:72px;border-radius:50%;background:#fee2e2;border:1px solid #fecaca;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1.5rem">✗</div>
+    <span class="page-type-badge" style="background:#fee2e2;color:#991b1b;border-color:#fecaca">Submission Failed</span>
+    <h1 class="page-title" style="text-align:center;margin-top:.9rem">Couldn't save to Google Sheets</h1>
+    <p class="page-content" style="text-align:center">This is usually caused by an ad blocker or browser privacy setting.</p>
+    <p class="page-content" style="text-align:center;margin-top:.25rem">Please <strong style="color:var(--text)">download your results</strong> and send the file to <strong style="color:var(--text)">felix.olander@gmail.com</strong>.</p>`;
+
+  const actionRow = mk('div','action-row');
+  actionRow.style.cssText = 'justify-content:center;margin-top:1.5rem';
+
+  const dlBtn = mk('button','dl-btn','⬇ Download CSV');
+  dlBtn.onclick = downloadCSV;
+  actionRow.appendChild(dlBtn);
+
+  const mailA = document.createElement('a');
+  mailA.href = mailHref;
+  mailA.style.cssText = 'display:inline-flex;align-items:center;gap:.5rem;padding:.55rem 1.2rem;background:var(--accent);color:white;border-radius:8px;font-family:Sora,sans-serif;font-size:.84rem;font-weight:600;text-decoration:none;';
+  mailA.textContent = '✉ Open Email';
+  actionRow.appendChild(mailA);
+
+  const note = mk('p','');
+  note.style.cssText = 'font-size:.78rem;color:var(--muted);text-align:center;margin-top:.75rem;width:100%';
+  note.textContent = 'Download the CSV first, then attach it to the email before sending.';
+  actionRow.appendChild(note);
+
+  card.appendChild(actionRow);
+
+  const errDetail = mk('p','');
+  errDetail.style.cssText = 'font-size:.72rem;color:var(--muted);text-align:center;margin-top:1.5rem;font-family:"JetBrains Mono",monospace;';
+  errDetail.textContent = `Error: ${errorMsg}`;
+  card.appendChild(errDetail);
 }
 
 /* ── footer ──────────────────────────────────────────────────── */
@@ -1118,21 +1164,24 @@ function buildPayload() {
 }
 
 /* ── server save ─────────────────────────────────────────────── */
-function saveToServer(statusEl) {
+function saveToServer(card, page) {
   if (!CFG.remoteService) {
-    statusEl.innerHTML = `<span class="save-status save-pending">No server configured — use CSV download.</span>`;
+    onSubmitFailure(card, 'No server configured');
     return;
   }
-  statusEl.innerHTML = `<span class="save-status save-pending">⏳ Submitting to Google Sheets…</span>`;
   fetch(CFG.remoteService, {
     method: 'POST',
-    mode: 'no-cors',
     body: JSON.stringify(buildPayload())
-  }).then(() => {
-    statusEl.innerHTML = `<span class="save-status save-ok">✓ Submitted to Google Sheets</span>`;
-  }).catch(e => {
-    statusEl.innerHTML = `<span class="save-status save-fail">✗ Submission failed (${e.message}) — please download CSV.</span>`;
-  });
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data && data.status === 'ok') {
+      onSubmitSuccess(card, page);
+    } else {
+      throw new Error(data && data.message ? data.message : 'unexpected response');
+    }
+  })
+  .catch(e => onSubmitFailure(card, e.message));
 }
 
 /* ── CSV download ────────────────────────────────────────────── */
