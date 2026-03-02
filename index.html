@@ -308,6 +308,25 @@ input[type="range"]::-moz-range-thumb {
   min-width: 32px;
 }
 
+/* ── Info note ── */
+.info-note {
+  display: flex;
+  gap: .65rem;
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: .83rem;
+  color: #78350f;
+  line-height: 1.55;
+}
+.info-note-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: .05rem;
+}
+
 /* ── Warning ── */
 .must-play-warn {
   font-size: .76rem;
@@ -580,6 +599,7 @@ input[type="range"]::-moz-range-thumb {
       "name":      "Eeriness",
       "id":        "eeriness",
       "content":   "Rate how <strong>eerie</strong> each voice sounds compared to the reference.",
+      "note":      "<strong>Note:</strong> Unlike human-likeness or likability, the reference anchors the low end of this scale rather than the top. Rate each sample on how eerie it sounds, the unmanipulated reference would naturally score low on this scale.",
       "randomize": true,
       "reference": { "label": "Reference", "src": "audio/surprised_complain_woman_REF.wav" },
       "stimuli": [
@@ -610,6 +630,7 @@ input[type="range"]::-moz-range-thumb {
       "name":      "Robotic",
       "id":        "robotic",
       "content":   "Rate how <strong>robotic</strong> each voice sounds compared to the reference.",
+      "note":      "<strong>Note:</strong> Unlike human-likeness or likability, the reference anchors the low end of this scale rather than the top. Rate each sample on how robotic it sounds, the unmanipulated reference would naturally score low on this scale.",
       "randomize": true,
       "reference": { "label": "Reference", "src": "audio/surprised_complain_woman_REF.wav" },
       "stimuli": [
@@ -830,7 +851,8 @@ function buildMushra(page, idx) {
   card.innerHTML = `
     <span class="page-type-badge">MUSHRA · ${mIdx} of ${mTotal}</span>
     <h1 class="page-title">${page.name}</h1>
-    <p class="page-content">${page.content}</p>`;
+    <p class="page-content">${page.content}</p>
+    ${page.note ? `<div class="info-note"><span class="info-note-icon">ℹ</span><span>${page.note}</span></div>` : ''}`;
 
   // reference row
   const refRow = mk('div','ref-row');
