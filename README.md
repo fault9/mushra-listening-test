@@ -1,19 +1,19 @@
-# Voice Perception Study — MUSHRA Listening Test
+# MUSHRA Listening Test - Voice Perception Study
 
-A single-file MUSHRA listening test that collects ratings and saves results to Google Sheets.
+MUSHRA listening test that collects ratings and saves results to Google Sheets.
 
 ## File Structure
 
 ```
 mushra-listening-test/
 ├── index.html       ← Entire test + config (edit the JSON block inside)
-├── sensitive.wav    ← Placeholder audio — replace with your real files
+├── sensitive.wav    ← Placeholder audio, replace with your own audio files
 └── README.md
 ```
 
 ---
 
-## 1 — Add Your Audio Files
+## 1 Add Your Audio Files
 
 Drop your WAV files into the same folder as `index.html`. Then update the `src` paths in the JSON config block inside `index.html`:
 
@@ -31,26 +31,26 @@ Drop your WAV files into the same folder as `index.html`. Then update the `src` 
 
 ---
 
-## 2 — Page Types
+## 2 Page Types
 
 Open `index.html` and find the `<script id="cfg">` block. The `pages` array controls the test flow. Five page types are supported:
 
-### `consent` — participant information & consent checkbox
+### `consent`: participant information & consent checkbox
 ```json
 { "type": "consent", "name": "Participant Information & Consent" }
 ```
 
-### `demographics` — age, education, native English
+### `demographics`: age, education, native English
 ```json
 { "type": "demographics", "name": "About You" }
 ```
 
-### `generic` — text / introduction page
+### `generic`: text / introduction page
 ```json
 { "type": "generic", "name": "Introduction", "content": "HTML content here." }
 ```
 
-### `mushra` — rating page
+### `mushra`: rating page
 ```json
 {
   "type":      "mushra",
@@ -63,14 +63,14 @@ Open `index.html` and find the `<script id="cfg">` block. The `pages` array cont
 }
 ```
 
-### `finish` — thank-you page
+### `finish`: thank-you page
 ```json
 { "type": "finish", "name": "Thank You", "content": "Your responses have been recorded.", "showResults": false }
 ```
 
 ---
 
-## 3 — Results
+## 3 Results
 
 ### Google Sheets (automatic)
 Set `"remoteService"` in the config to your Google Apps Script web app URL. Results are posted automatically when a participant reaches the finish page.
@@ -91,11 +91,11 @@ Set `"remoteService"` in the config to your Google Apps Script web app URL. Resu
 | rating_comment | Reserved for future use |
 
 ### CSV download (always available)
-Participants can download their results as a CSV directly from the Finish page — no server needed.
+Participants can download their results as a CSV directly from the finish page, no server needed.
 
 ---
 
-## 4 — Hosting
+## 4 Hosting
 
 Deployed on **GitHub Pages** (HTTPS required for Web Audio API volume boost).
 
@@ -107,7 +107,7 @@ python3 -m http.server 8080
 
 ---
 
-## 5 — Config Options
+## 5 Config Options
 
 | Key | Description |
 |-----|-------------|
