@@ -6,14 +6,15 @@ MUSHRA listening test that collects ratings and saves results to Google Sheets.
 
 ```
 mushra-listening-test/
-├── index.html       ← Entire test + config (edit the JSON block inside)
-├── sensitive.wav    ← Placeholder audio, replace with your own audio files
+├── index.html      - Entire test + config (edit the JSON block inside)
+├── write.php       - PHP backend: receives results and writes to CSV
+├── /audio          - Folder for storing wav-files to use
 └── README.md
 ```
 
 ---
 
-## 1 Add Your Audio Files
+## 1. Add Your Audio Files
 
 Drop your WAV files into the same folder as `index.html`. Then update the `src` paths in the JSON config block inside `index.html`:
 
@@ -31,7 +32,7 @@ Drop your WAV files into the same folder as `index.html`. Then update the `src` 
 
 ---
 
-## 2 Page Types
+## 2. Page Types
 
 Open `index.html` and find the `<script id="cfg">` block. The `pages` array controls the test flow. Five page types are supported:
 
@@ -70,7 +71,7 @@ Open `index.html` and find the `<script id="cfg">` block. The `pages` array cont
 
 ---
 
-## 3 Results
+## 3. Results
 
 ### Google Sheets (automatic)
 Set `"remoteService"` in the config to your Google Apps Script web app URL. Results are posted automatically when a participant reaches the finish page.
@@ -95,7 +96,7 @@ Participants can download their results as a CSV directly from the finish page, 
 
 ---
 
-## 4 Hosting
+## 4. Hosting
 
 Deployed on **GitHub Pages** (HTTPS required for Web Audio API volume boost).
 
@@ -107,7 +108,7 @@ python3 -m http.server 8080
 
 ---
 
-## 5 Config Options
+## 5. Config Options
 
 | Key | Description |
 |-----|-------------|
